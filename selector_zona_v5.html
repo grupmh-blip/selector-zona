@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selector de Zona</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f3f2f1;color:#323130;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+:root{--blue:#0078d4;--blue-l:#deecf9;--blue-d:#005a9e;--green:#107c10;--green-l:#dff6dd;--green-d:#0a4f0a;--orange:#d83b01;--orange-l:#fed9cc;--gray:#605e5c;--gray-l:#edebe9;--gray-ll:#f3f2f1;--border:#e1dfdd;--r:4px;--sh:0 1.6px 3.6px rgba(0,0,0,.13)}
+header{background:var(--blue);color:white;padding:0 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;height:46px}
+header h1{font-size:14px;font-weight:600}
+header p{font-size:11px;opacity:.75;margin-left:4px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px}
+.hchip{background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600}
+.btn{padding:6px 12px;border-radius:var(--r);border:1px solid var(--border);background:white;color:#323130;font-size:12px;font-family:inherit;cursor:pointer;font-weight:600;transition:all .12s;white-space:nowrap}
+.btn:hover{background:var(--gray-l)}
+.btn.primary{background:var(--blue);border-color:var(--blue-d);color:white}
+.btn.primary:hover{background:var(--blue-d)}
+.btn.success{background:var(--green);border-color:var(--green-d);color:white}
+.btn.success:hover{background:var(--green-d)}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+
+/* SCREENS */
+.screen{flex:1;display:none;align-items:center;justify-content:center}
+.screen.active{display:flex}
+#sApp{display:none;min-height:0}
+#sApp.active{display:block}
+
+/* UPLOAD CARD */
+.card{background:white;border:1px solid var(--border);border-radius:8px;padding:28px 36px;max-width:540px;width:100%;box-shadow:var(--sh)}
+.card h2{font-size:17px;font-weight:600;margin-bottom:6px}
+.card>p{font-size:13px;color:var(--gray);margin-bottom:18px;line-height:1.6}
+
+/* PROVIDER */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.pcard{border:1.5px solid var(--border);border-radius:6px;padding:9px 8px;cursor:pointer;transition:all .15s;text-align:center}
+.pcard:hover{border-color:var(--blue)}
+.pcard.active{border-color:var(--blue);background:var(--blue-l)}
+.pn{font-size:12px;font-weight:700;margin-bottom:1px}
+.pt{font-size:10px;color:var(--gray)}
+.pcard.active .pt{color:var(--blue-d)}
+.bf{font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px;background:var(--green-l);color:var(--green-d)}
+.bk{font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px;background:#fff4ce;color:#7a5c00}
+.kbox{background:#faf9f8;border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:10px;display:none}
+.kbox p{font-size:11px;color:var(--gray);margin-bottom:7px;line-height:1.5}
+.krow{display:flex;gap:6px}
+.krow input{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;font-family:inherit}
+.krow input:focus{outline:2px solid var(--blue)}
+.klink{font-size:11px;color:var(--blue);text-decoration:underline;cursor:pointer;display:block;margin-top:4px}
+.msg{font-size:12px;padding:7px 10px;border-radius:var(--r);margin-top:8px;display:none}
+.msg.info{background:var(--blue-l);color:var(--blue-d);display:block}
+.msg.error{background:var(--orange-l);color:#7a2d00;display:block}
+.msg.ok{background:var(--green-l);color:var(--green-d);display:block}
+
+/* DROP ZONE */
+.drop{border:2px dashed var(--border);border-radius:6px;padding:20px;cursor:pointer;transition:all .2s;text-align:center;margin-bottom:10px}
+.drop:hover,.drop.drag{border-color:var(--blue);background:var(--blue-l)}
+.drop svg{color:var(--blue);margin:0 auto 8px;display:block}
+.drop h3{font-size:13px;font-weight:600;margin-bottom:3px}
+.drop p{font-size:11px;color:var(--gray);margin:0}
+input[type=file]{display:none}
+
+/* COLUMNS */
+.cols{background:#faf9f8;border:1px solid var(--border);border-radius:6px;padding:12px 14px;display:none;margin-top:8px}
+.cols h4{font-size:12px;font-weight:600;margin-bottom:8px}
+.cr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cr label{min-width:90px;font-size:11px;color:var(--gray);font-weight:600}
+.cr select{flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;font-family:inherit}
+.cr select:focus{outline:2px solid var(--blue)}
+
+/* PROGRESS */
+.prog{background:white;border:1px solid var(--border);border-radius:8px;padding:28px 36px;text-align:center;min-width:360px;box-shadow:var(--sh)}
+.prog h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.pbar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:10px 0 6px}
+.pfill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
+.ptxt{font-size:12px;color:var(--gray);min-height:16px}
+
+/* APP LAYOUT */
+#sApp{width:100%;height:calc(100vh - 46px);overflow:hidden}
+.layout{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 46px);overflow:hidden}
+.sidebar{display:flex;flex-direction:column;background:white;border-right:1px solid var(--border);overflow:hidden;min-height:0}
+.ssec{padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.slbl{font-size:10px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.3px;margin-bottom:7px}
+.rrow{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.rrow span{font-size:11px;color:var(--gray);min-width:44px}
+input[type=range]{flex:1;accent-color:var(--blue)}
+.rval{font-size:13px;font-weight:700;color:var(--blue);min-width:42px;text-align:right}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.pill.blue{background:var(--blue-l);color:var(--blue-d)}
+.pill.green{background:var(--green-l);color:var(--green-d)}
+.lhead{padding:7px 12px;font-size:11px;color:var(--gray);background:#faf9f8;border-bottom:1px solid var(--border);display:flex;align-items:center;flex-shrink:0}
+.lscroll{flex:1;overflow-y:auto}
+.citem{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.citem:hover{background:var(--gray-ll)}
+.citem.inzone{background:var(--blue-l);border-left:3px solid var(--blue)}
+.cdot{width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:5px}
+.ci{min-width:0;flex:1}
+.cn{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ca{font-size:11px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.cm{font-size:10px;color:#999;margin-top:1px}
+.ct{font-size:11px;color:var(--blue);display:block;margin-top:2px}
+.cdist{font-size:10px;font-weight:700;color:var(--blue-d);flex-shrink:0;margin-top:3px}
+.bot{padding:9px 12px;border-top:1px solid var(--border);background:#faf9f8;display:flex;gap:6px;align-items:center;flex-shrink:0}
+#map{width:100%;height:100%}
+.mhint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.68);color:white;font-size:12px;padding:6px 16px;border-radius:20px;z-index:999;pointer-events:none;transition:opacity .4s;white-space:nowrap}
+.mhint.hidden{opacity:0}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+  <h1>Selector de Zona</h1>
+  <p id="hSub"></p>
+  <div class="hright">
+    <span class="hchip" id="hZone" style="display:none"></span>
+    <button class="btn" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:white;font-size:11px;display:none" id="btnReset" onclick="resetApp()">Nuevo CSV</button>
+    <button class="btn" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:white;font-size:11px;display:none" id="btnClearCache" onclick="clearCache()" title="Borrar caché de geocodificación">🗑 Caché</button>
+  </div>
+</header>
+
+<!-- UPLOAD -->
+<div class="screen active" id="sUpload">
+  <div class="card">
+    <h2>Selector de zona para centralita</h2>
+    <p>Carga el CSV de órdenes, define la zona en el mapa con el radio y exporta el listado para que la centralita concierte las citas.</p>
+
+    <div class="slbl" style="margin-bottom:8px">Geocodificador</div>
+    <div class="pgrid">
+      <div class="pcard active" id="pc-photon" onclick="setP('photon')"><div class="pn">Photon <span class="bf">Gratis</span></div><div class="pt">Sin registro</div></div>
+      <div class="pcard" id="pc-geoapify" onclick="setP('geoapify')"><div class="pn">Geoapify <span class="bk">Key</span></div><div class="pt">3.000/día gratis</div></div>
+      <div class="pcard" id="pc-google" onclick="setP('google')"><div class="pn">Google Maps <span class="bk">Key</span></div><div class="pt">Máxima precisión</div></div>
+    </div>
+    <div class="kbox" id="kb-geoapify">
+      <p>Registro gratuito en <b>geoapify.com</b> — sin tarjeta.</p>
+      <div class="krow"><input type="password" id="key-geoapify" placeholder="API key..."><button class="btn" onclick="testKey('geoapify')">Probar</button></div>
+      <span class="klink" onclick="window.open('https://www.geoapify.com/get-started-with-maps-api','_blank')">Cómo obtener la key →</span>
+      <div class="msg" id="km-geoapify"></div>
+    </div>
+    <div class="kbox" id="kb-google">
+      <p>Google Cloud Console → activa <b>Geocoding API</b> → crea clave. 200€/mes gratis.</p>
+      <div class="krow"><input type="password" id="key-google" placeholder="AIzaSy..."><button class="btn" onclick="testKey('google')">Probar</button></div>
+      <span class="klink" onclick="window.open('https://developers.google.com/maps/documentation/geocoding/get-api-key','_blank')">Cómo obtener la key →</span>
+      <div class="msg" id="km-google"></div>
+    </div>
+
+    <div class="drop" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <h3>Arrastra el CSV aquí o haz clic</h3>
+      <p>Separador ; o ,  ·  Latin-1 o UTF-8  ·  Cualquier población</p>
+    </div>
+    <input type="file" id="fileInput" accept=".csv" onchange="onFile(this)">
+
+    <div class="cols" id="colBlock">
+      <h4>Mapear columnas</h4>
+      <div class="cr"><label>Nombre *</label><select id="cNombre"></select></div>
+      <div class="cr"><label>Dirección *</label><select id="cDir"></select></div>
+      <div class="cr"><label>Teléfono</label><select id="cTel"><option value="">—</option></select></div>
+      <div class="cr"><label>ID / OT</label><select id="cOt"><option value="">—</option></select></div>
+      <div class="cr"><label>CP / Zip</label><select id="cZip"><option value="">—</option></select></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button class="btn primary" onclick="startGeo()">Geocodificar →</button>
+      </div>
+    </div>
+    <div class="msg" id="upMsg"></div>
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div class="screen" id="sProgress">
+  <div class="prog">
+    <h3>Geocodificando direcciones...</h3>
+    <p class="ptxt" id="pTxt">Preparando...</p>
+    <div class="pbar"><div class="pfill" id="pFill" style="width:0%"></div></div>
+    <p class="ptxt" id="pSrc" style="font-size:11px;margin-top:2px"></p>
+    <p class="ptxt" id="pInfo" style="font-size:11px;margin-top:2px;color:var(--gray)"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="screen" id="sApp">
+  <div class="layout">
+    <div class="sidebar">
+
+      <!-- RADIUS -->
+      <div class="ssec">
+        <div class="slbl">Zona para centralita</div>
+        <div class="rrow">
+          <span>Radio</span>
+          <input type="range" min="0.2" max="10" step="0.1" value="1" id="rSlider" oninput="onRadius()">
+          <span class="rval" id="rVal">1.0 km</span>
+        </div>
+        <div class="pills">
+          <span class="pill blue" id="pTotal">— clientes</span>
+          <span class="pill green" id="pZone" style="display:none"></span>
+        </div>
+        <div style="font-size:11px;color:var(--gray);margin-top:6px" id="zHint">👆 Haz clic en el mapa para centrar la zona</div>
+      </div>
+
+      <!-- SEARCH -->
+      <div class="ssec" style="padding:8px 12px">
+        <input type="text" id="searchBox" placeholder="Buscar nombre, dirección, OT..." oninput="renderList()" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;font-family:inherit">
+      </div>
+
+      <!-- LIST HEADER -->
+      <div class="lhead">
+        <span id="listTitle">Todos los clientes</span>
+        <div style="flex:1"></div>
+        <span style="font-size:10px;color:#aaa" id="listSub"></span>
+      </div>
+
+      <!-- LIST -->
+      <div class="lscroll" id="clientList"></div>
+
+      <!-- BOTTOM BAR -->
+      <div style="padding:6px 12px;border-top:1px solid var(--border);background:#faf9f8;display:flex;gap:5px;align-items:center;flex-shrink:0;flex-wrap:wrap">
+        <button class="btn" onclick="clearZone()" id="btnClear" disabled style="font-size:11px;padding:5px 8px">Limpiar</button>
+        <button class="btn" onclick="exportCache()" title="Guardar caché" style="font-size:11px;padding:5px 8px">💾 Caché</button>
+        <button class="btn" onclick="document.getElementById('cacheFileInput').click()" title="Cargar caché" style="font-size:11px;padding:5px 8px">📂 Caché</button>
+        <input type="file" id="cacheFileInput" accept=".json" style="display:none" onchange="importCache(this)">
+        <div style="flex:1"></div>
+        <button class="btn success" onclick="exportZone()" id="btnExport" disabled style="font-size:12px;padding:6px 14px;font-weight:700">⬇ Exportar zona</button>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div style="position:relative;overflow:hidden">
+      <div id="map"></div>
+      <div class="mhint" id="mapHint">Haz clic en el mapa para definir la zona</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── State ──
+let orders=[], csvHeaders=[], csvRows=[], csvSep=';';
+let provider='photon', apiKey='';
+let center=null, radiusKm=1, zoneOrders=[];
+let map=null, dotsLayer=null, zoneLayer=null, centerMark=null, radiusCircle=null;
+
+// ── Provider ──
+function setP(p){
+  provider=p;
+  ['photon','geoapify','google'].forEach(id=>{
+    document.getElementById('pc-'+id).classList.toggle('active',id===p);
+    const kb=document.getElementById('kb-'+id);
+    if(kb) kb.style.display=id===p?'block':'none';
+  });
+}
+async function testKey(p){
+  const key=document.getElementById('key-'+p).value.trim();
+  const el=document.getElementById('km-'+p);
+  if(!key){showMsg(el,'Introduce la clave primero.','error');return;}
+  showMsg(el,'Probando...','info');
+  const res=p==='geoapify'?await geoGeoapify('Calle Mayor 1, Madrid',key):await geoGoogle('Calle Mayor 1, Madrid',key);
+  if(res){try{localStorage.setItem('apikey_'+p,key);}catch(e){} showMsg(el,'✓ Clave válida y guardada','ok');}
+  else showMsg(el,'✗ Clave inválida o API no activada','error');
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  ['geoapify','google'].forEach(p=>{
+    try{const s=localStorage.getItem('apikey_'+p);if(s){document.getElementById('key-'+p).value=s;showMsg(document.getElementById('km-'+p),'✓ Clave guardada restaurada','ok');}}catch(e){}
+  });
+});
+
+// ── CSV ──
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');loadFile(e.dataTransfer.files[0])});
+function onFile(inp){if(inp.files[0])loadFile(inp.files[0]);}
+function loadFile(f){const r=new FileReader();r.onload=e=>parseCSV(e.target.result);r.readAsText(f,'latin1');}
+function parseCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  if(lines.length<2){showMsg(document.getElementById('upMsg'),'Archivo vacío.','error');return;}
+  csvSep=lines[0].split(';').length>lines[0].split(',').length?';':',';
+  csvHeaders=lines[0].split(csvSep).map(h=>h.trim().replace(/^"|"$/g,''));
+  csvRows=lines.slice(1).map(l=>l.split(csvSep).map(c=>c.trim().replace(/^"|"$/g,'')));
+  showMsg(document.getElementById('upMsg'),`${csvRows.length} filas · ${csvHeaders.length} columnas detectadas`,'info');
+  fillCols();
+  document.getElementById('colBlock').style.display='block';
+}
+function fillCols(){
+  // Ordered keyword lists — first match wins, so put most specific first
+  const kw={
+    cNombre:['nombre del contacto','nombre de la cuenta','nombre','name','cuenta','cliente'],
+    cDir:   ['direcci','address','calle','domicilio'],
+    cTel:   ['telefono movil','tel','phone','movil'],
+    cOt:    ['n.*mero de orden','numero de orden','orden de trabajo','\bOT\b','numero','id','ref'],
+    cZip:   ['zip','postal','\bcp\b','c\.p']
+  };
+  ['cNombre','cDir','cTel','cOt','cZip'].forEach(id=>{
+    const sel=document.getElementById(id);
+    const blank=sel.options[0]?.value==='';
+    sel.innerHTML=blank?'<option value="">—</option>':'';
+    csvHeaders.forEach((h,i)=>sel.add(new Option(h,i)));
+    // Try each keyword in order — first one that matches wins
+    let matched=-1;
+    for(const k of (kw[id]||[])){
+      const idx=csvHeaders.findIndex(h=>new RegExp(k,'i').test(h));
+      if(idx>=0){matched=idx;break;}
+    }
+    if(matched>=0) sel.value=matched;
+  });
+}
+
+// ── Geocoding ──
+async function startGeo(){
+  const iN=+document.getElementById('cNombre').value;
+  const iD=+document.getElementById('cDir').value;
+  const iT=document.getElementById('cTel').value!==''?+document.getElementById('cTel').value:-1;
+  const iO=document.getElementById('cOt').value!==''?+document.getElementById('cOt').value:-1;
+  const iZ=document.getElementById('cZip').value!==''?+document.getElementById('cZip').value:-1;
+
+  if(provider!=='photon'){
+    apiKey=document.getElementById('key-'+provider).value.trim();
+    if(!apiKey){showMsg(document.getElementById('upMsg'),'Introduce y prueba la API Key primero.','error');return;}
+    try{localStorage.setItem('apikey_'+provider,apiKey);}catch(e){}
+  }
+
+  orders=csvRows.map((r,i)=>({
+    _rowIdx:i,
+    nombre:r[iN]||'', dir:r[iD]||'',
+    tel:iT>=0?r[iT]||'':'',
+    ot:iO>=0?r[iO]||'':String(i+1),
+    zip:iZ>=0?r[iZ]||'':'',
+    lat:null, lng:null
+  })).filter(o=>o.dir.trim());
+
+  // Load persistent geocache
+  let geoCache={};
+  try{geoCache=JSON.parse(localStorage.getItem('geocache')||'{}');}catch(e){}
+
+  showScreen('sProgress');
+  const unique=[...new Map(orders.map(o=>[o.dir,o.zip])).entries()];
+  let done=0, fetched=0, fromCache=0, failed=0;
+
+  for(const [dir,zip] of unique){
+    const key=dir.trim().toLowerCase();
+    if(geoCache[key]){
+      orders.filter(o=>o.dir===dir).forEach(o=>{o.lat=geoCache[key].lat;o.lng=geoCache[key].lng;});
+      fromCache++;
+    } else {
+      const q=buildQuery(dir,zip);
+      document.getElementById('pSrc').textContent=q.slice(0,72);
+      const res=await geocodeWithFallback(q,apiKey);
+      if(res){
+        geoCache[key]={lat:res.lat,lng:res.lng};
+        orders.filter(o=>o.dir===dir).forEach(o=>{o.lat=res.lat;o.lng=res.lng;});
+        fetched++;
+      } else { failed++; }
+      if(provider==='photon') await sleep(300);
+    }
+    done++;
+    const pct=Math.round(done/unique.length*100);
+    document.getElementById('pFill').style.width=pct+'%';
+    document.getElementById('pTxt').textContent=`${done} / ${unique.length}  (${pct}%)`;
+    const parts=[];
+    if(fromCache) parts.push(fromCache+' de caché 💾');
+    if(fetched)   parts.push(fetched+' nuevas 🌐');
+    if(failed)    parts.push(failed+' fallidas ⚠️');
+    document.getElementById('pInfo').textContent=parts.join(' · ');
+  }
+
+  try{localStorage.setItem('geocache',JSON.stringify(geoCache));}catch(e){}
+
+  const n=orders.filter(o=>o.lat).length;
+  document.getElementById('hSub').textContent=`${n} clientes geocodificados`;
+  document.getElementById('hZone').style.display='inline';
+  document.getElementById('btnReset').style.display='inline';
+  document.getElementById('btnClearCache').style.display='inline';
+  document.getElementById('pTotal').textContent=n+' clientes';
+  showScreen('sApp');
+  initMap();
+}
+
+function buildQuery(raw,zip){
+  let a=raw;
+  a=a.replace(/\b(Esc\.?|Portal|Piso|Puerta|\bAT\b|\bBJ\b|LOC\w*)[\s\S]*$/i,'');
+  a=a.replace(/,?\s*(NO EXISTE|ESPAÑA|Barcelona\s*\d*)[\s\S]*/gi,'');
+  a=a.replace(/\b0+(\d+)\b/g,'$1');
+  a=a.replace(/\bAVINGUDA\b/gi,'Avenida').replace(/\bPASSATGE\b/gi,'Pasaje')
+     .replace(/\bPASSEIG\b/gi,'Paseo').replace(/\bPLAÇA\b/gi,'Plaza')
+     .replace(/\bCARRER\b/gi,'Calle').replace(/\bCAMÍ\b/gi,'Camino');
+  a=a.replace(/\s+/g,' ').trim().replace(/,+\s*$/,'');
+  const cm=raw.match(/,\s*([^,]{4,50}?)\s*,\s*(?:Barcelona|Madrid|Valencia|Sevilla|Zaragoza|Tarragona|Girona|Lleida)/i);
+  const city=cm?cm[1].trim():'';
+  const vc=city&&!/NO EXISTE/i.test(city)?city:'';
+  const parts=[a];
+  if(vc)parts.push(vc);
+  if(zip){const z=zip.trim().padStart(5,'0');if(z!=='00000')parts.push(z);}
+  parts.push('España');
+  return parts.join(', ');
+}
+
+async function geocodeWithFallback(q,key){
+  let res=null;
+  if(provider==='photon')   res=await geoPhoton(q);
+  if(provider==='geoapify') res=await geoGeoapify(q,key);
+  if(provider==='google')   res=await geoGoogle(q,key);
+  if(res) return res;
+  if(provider!=='photon'){res=await geoPhoton(q);if(res)return res;}
+  return await geoNominatim(q);
+}
+async function geoPhoton(q){try{const r=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lang=es`,{headers:{'User-Agent':'SelectorZona/1.0'}});const d=await r.json();if(d?.features?.length){const[lng,lat]=d.features[0].geometry.coordinates;return{lat,lng};}}catch(e){}return null;}
+async function geoGeoapify(q,key){try{const r=await fetch(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(q)}&apiKey=${key}&lang=es&filter=countrycode:es&limit=1`);const d=await r.json();if(d?.features?.length){const[lng,lat]=d.features[0].geometry.coordinates;return{lat,lng};}}catch(e){}return null;}
+async function geoGoogle(q,key){try{const r=await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&key=${key}&language=es&region=es`);const d=await r.json();if(d?.status==='OK'&&d.results.length){const l=d.results[0].geometry.location;return{lat:l.lat,lng:l.lng};}}catch(e){}return null;}
+async function geoNominatim(q){try{await sleep(1100);const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&countrycodes=es`,{headers:{'Accept-Language':'es','User-Agent':'SelectorZona/1.0'}});const d=await r.json();if(d?.length)return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};}catch(e){}return null;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ── Map ──
+function initMap(){
+  const valid=orders.filter(o=>o.lat);
+  const c0=valid.length?[valid.reduce((s,o)=>s+o.lat,0)/valid.length,valid.reduce((s,o)=>s+o.lng,0)/valid.length]:[40.416,-3.703];
+  map=L.map('map').setView(c0,14);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OSM © CARTO',maxZoom:19}).addTo(map);
+  dotsLayer=L.layerGroup().addTo(map);
+  zoneLayer=L.layerGroup().addTo(map);
+  renderDots();
+  renderList();
+  if(valid.length) map.fitBounds(valid.map(o=>[o.lat,o.lng]),{padding:[30,30]});
+  map.on('click',e=>setCenter(e.latlng.lat,e.latlng.lng));
+}
+
+function renderDots(){
+  dotsLayer.clearLayers();
+  const inZoneOts=new Set(zoneOrders.map(o=>o.ot));
+  orders.forEach(o=>{
+    if(!o.lat) return;
+    const inZone=inZoneOts.has(o.ot);
+    L.circleMarker([o.lat,o.lng],{
+      radius:inZone?6:4,
+      color:inZone?'#0078d4':'#aaa',
+      fillColor:inZone?'#5ba7e0':'#ccc',
+      fillOpacity:inZone?.85:.5,
+      weight:inZone?1.5:0.8
+    }).bindPopup(`<div style="font-family:'Segoe UI',sans-serif">
+      <b>${o.nombre}</b><br>
+      <span style="font-size:12px">${o.dir.replace(/,?\s*(Esc\.|Portal|Piso|Puerta|ESPAÑA|Barcelona\s*\d*).*/gi,'').trim()}</span>
+      ${o.tel?'<br>📞 '+o.tel:''}
+      <br><span style="font-size:11px;color:#666">OT: ${o.ot}</span>
+    </div>`).addTo(dotsLayer);
+  });
+}
+
+// ── Zone ──
+function setCenter(lat,lng){
+  center={lat,lng};
+  radiusKm=parseFloat(document.getElementById('rSlider').value);
+  drawZone();update();
+  document.getElementById('mapHint').classList.add('hidden');
+  document.getElementById('btnClear').disabled=false;
+}
+
+function drawZone(){
+  if(centerMark){centerMark.remove();centerMark=null;}
+  if(radiusCircle){radiusCircle.remove();radiusCircle=null;}
+  if(!center)return;
+  centerMark=L.marker([center.lat,center.lng],{
+    icon:L.divIcon({className:'',html:`<div style="width:22px;height:22px;border-radius:50%;background:#d83b01;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.45)"></div>`,iconSize:[22,22],iconAnchor:[11,11]}),
+    draggable:true,zIndexOffset:2000
+  }).bindPopup('<b>Centro de zona</b><br><small>Arrastra para mover</small>').addTo(map);
+  centerMark.on('drag',e=>{
+    const ll=e.target.getLatLng();
+    center={lat:ll.lat,lng:ll.lng};
+    radiusCircle.setLatLng(ll);
+    update();
+  });
+  radiusCircle=L.circle([center.lat,center.lng],{
+    radius:radiusKm*1000,
+    color:'#0078d4',weight:2,dashArray:'8 5',
+    fillColor:'#0078d4',fillOpacity:.08
+  }).addTo(map);
+}
+
+function onRadius(){
+  radiusKm=parseFloat(document.getElementById('rSlider').value);
+  document.getElementById('rVal').textContent=radiusKm.toFixed(1)+' km';
+  if(radiusCircle) radiusCircle.setRadius(radiusKm*1000);
+  if(center) update();
+}
+
+function hav(a,b){
+  const R=6371,rad=x=>x*Math.PI/180;
+  const dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng);
+  const s=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(s),Math.sqrt(1-s));
+}
+
+function update(){
+  if(!center)return;
+  zoneOrders=orders
+    .filter(o=>o.lat&&hav(center,o)<=radiusKm)
+    .map(o=>({...o,_dist:Math.round(hav(center,o)*1000)}))
+    .sort((a,b)=>a._dist-b._dist);
+
+  const total=orders.filter(o=>o.lat).length;
+  document.getElementById('pTotal').textContent=total+' clientes';
+  document.getElementById('pZone').textContent=zoneOrders.length+' en zona';
+  document.getElementById('pZone').style.display=zoneOrders.length?'inline':'none';
+  document.getElementById('zHint').textContent=`📍 ${zoneOrders.length} clientes en zona · Arrastra el punto para mover`;
+  document.getElementById('hZone').textContent=zoneOrders.length+' en zona';
+  document.getElementById('btnExport').disabled=zoneOrders.length===0;
+  renderDots();
+  renderList();
+}
+
+function clearZone(){
+  center=null; zoneOrders=[];
+  if(centerMark){centerMark.remove();centerMark=null;}
+  if(radiusCircle){radiusCircle.remove();radiusCircle=null;}
+  zoneLayer.clearLayers();
+  document.getElementById('btnClear').disabled=true;
+  document.getElementById('btnExport').disabled=true;
+  document.getElementById('pZone').style.display='none';
+  document.getElementById('hZone').textContent='';
+  document.getElementById('zHint').textContent='👆 Haz clic en el mapa para definir la zona';
+  document.getElementById('mapHint').classList.remove('hidden');
+  renderDots();
+  renderList();
+}
+
+// ── List ──
+function renderList(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  // If zone active: show zone clients. If no zone: show all.
+  let list=center?zoneOrders:orders.filter(o=>o.lat);
+  if(q) list=list.filter(o=>
+    o.nombre.toLowerCase().includes(q)||
+    o.dir.toLowerCase().includes(q)||
+    o.tel.includes(q)||
+    o.ot.includes(q)
+  );
+
+  const isZone=!!center;
+  document.getElementById('listTitle').textContent=
+    isZone?`Zona seleccionada (${list.length})`:`Todos los clientes (${list.length})`;
+  document.getElementById('listSub').textContent=
+    isZone&&list.length?'orden por distancia ↓':'';
+
+  const el=document.getElementById('clientList');
+  if(!list.length){
+    el.innerHTML=`<div style="padding:18px 12px;font-size:12px;color:var(--gray);text-align:center">
+      ${isZone?'Sin clientes en esta zona.<br>Amplía el radio o mueve el punto.':'Sin clientes geocodificados.'}
+    </div>`;
+    return;
+  }
+
+  el.innerHTML=list.map(o=>`
+    <div class="citem ${isZone?'inzone':''}" onclick="if(map)map.setView([${o.lat},${o.lng}],17)">
+      <div class="cdot"></div>
+      <div class="ci">
+        <div class="cn">${o.nombre||'—'}</div>
+        <div class="ca">${o.dir.replace(/,?\s*(Esc\.|Portal|Piso|Puerta|ESPAÑA|Barcelona\s*\d*).*/gi,'').trim().slice(0,52)}</div>
+        <div class="cm">OT: ${o.ot}${o.tel?' · '+o.tel:''}</div>
+      </div>
+      ${o._dist!==undefined?`<div class="cdist">${o._dist}m</div>`:''}
+    </div>`).join('');
+}
+
+// ── Export ──
+function exportZone(){
+  if(!zoneOrders.length) return;
+
+  // Original CSV format + 2 new columns: Latitud, Longitud
+  const newCols=['Latitud','Longitud'];
+  const header=[...csvHeaders,...newCols].join(csvSep);
+
+  // Only export rows that are in the zone, in distance order
+  const rows=zoneOrders.map(o=>{
+    const r=csvRows[o._rowIdx];
+    const cells=r.map(c=>(c.includes(csvSep)||c.includes('"'))?'"'+c.replace(/"/g,'""')+'"':c);
+    return[...cells, o.lat||'', o.lng||''].join(csvSep);
+  });
+
+  const csv='\uFEFF'+[header,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`zona_${zoneOrders.length}clientes_${radiusKm}km.csv`;
+  a.click();
+}
+
+// ── Helpers ──
+function showMsg(el,t,type){el.textContent=t;el.className='msg '+type;}
+
+function showScreen(id){
+  ['sUpload','sProgress','sApp'].forEach(s=>{
+    const el=document.getElementById(s);
+    el.classList.toggle('active',s===id);
+  });
+}
+
+function clearCache(){
+  try{localStorage.removeItem('geocache');}catch(e){}
+  alert('Caché borrada. La próxima vez se consultará el geocodificador.');
+}
+
+function exportCache(){
+  let geoCache={};
+  try{geoCache=JSON.parse(localStorage.getItem('geocache')||'{}');}catch(e){}
+  const n=Object.keys(geoCache).length;
+  if(!n){alert('La caché está vacía. Geocodifica un CSV primero.');return;}
+  const blob=new Blob([JSON.stringify(geoCache,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='geocache_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function importCache(inp){
+  const file=inp.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const imported=JSON.parse(e.target.result);
+      // Merge with existing cache
+      let existing={};
+      try{existing=JSON.parse(localStorage.getItem('geocache')||'{}');}catch(ex){}
+      const merged={...existing,...imported};
+      localStorage.setItem('geocache',JSON.stringify(merged));
+      const newEntries=Object.keys(imported).length;
+      const total=Object.keys(merged).length;
+      alert(`✓ Caché importada: ${newEntries} direcciones añadidas (${total} en total).`);
+    }catch(ex){
+      alert('Error leyendo el archivo. Asegúrate de que es un archivo .json válido.');
+    }
+    inp.value='';
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+function resetApp(){
+  orders=[];csvHeaders=[];csvRows=[];center=null;zoneOrders=[];
+  if(map){map.remove();map=null;}
+  centerMark=radiusCircle=null;
+  document.getElementById('colBlock').style.display='none';
+  document.getElementById('fileInput').value='';
+  document.getElementById('upMsg').className='msg';
+  document.getElementById('hSub').textContent='';
+  document.getElementById('hZone').style.display='none';
+  document.getElementById('btnReset').style.display='none';
+  document.getElementById('btnClearCache').style.display='none';
+  showScreen('sUpload');
+}
+</script>
+</body>
+</html>
