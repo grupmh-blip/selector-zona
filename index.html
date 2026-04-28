@@ -60,6 +60,10 @@ header p{font-size:11px;opacity:.75;margin-left:4px}
 .drop svg{color:var(--blue);margin:0 auto 8px;display:block}
 .drop h3{font-size:13px;font-weight:600;margin-bottom:3px}
 .drop p{font-size:11px;color:var(--gray);margin:0}
+.config-row{background:#faf9f8;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:10px}
+.cache-row{background:#f0f6ff;border:1px solid #c8dff5;border-radius:6px;padding:10px 14px;margin-bottom:10px}
+.config-row{background:#faf9f8;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:10px}
+.cache-row{background:#f0f6ff;border:1px solid #c8dff5;border-radius:6px;padding:10px 14px;margin-bottom:10px}
 input[type=file]{display:none}
 
 /* COLUMNS */
@@ -107,6 +111,8 @@ input[type=range]{flex:1;accent-color:var(--blue)}
 #map{width:100%;height:100%}
 .mhint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.68);color:white;font-size:12px;padding:6px 16px;border-radius:20px;z-index:999;pointer-events:none;transition:opacity .4s;white-space:nowrap}
 .mhint.hidden{opacity:0}
+.config-row{background:#faf9f8;border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:10px}
+.cache-row{background:#f0f6ff;border:1px solid #c8dff5;border-radius:6px;padding:10px 14px;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -125,28 +131,44 @@ input[type=range]{flex:1;accent-color:var(--blue)}
 <!-- UPLOAD -->
 <div class="screen active" id="sUpload">
   <div class="card">
-    <h2>Selector de zona para centralita</h2>
-    <p>Carga el CSV de órdenes, define la zona en el mapa con el radio y exporta el listado para que la centralita concierte las citas.</p>
+    <h2>Selector de Zona</h2>
+    <p>Selecciona la zona del técnico en el mapa y exporta el listado para la centralita.</p>
 
-    <div class="slbl" style="margin-bottom:8px">Geocodificador</div>
-    <div class="pgrid">
-      <div class="pcard active" id="pc-photon" onclick="setP('photon')"><div class="pn">Photon <span class="bf">Gratis</span></div><div class="pt">Sin registro</div></div>
-      <div class="pcard" id="pc-geoapify" onclick="setP('geoapify')"><div class="pn">Geoapify <span class="bk">Key</span></div><div class="pt">3.000/día gratis</div></div>
-      <div class="pcard" id="pc-google" onclick="setP('google')"><div class="pn">Google Maps <span class="bk">Key</span></div><div class="pt">Máxima precisión</div></div>
-    </div>
-    <div class="kbox" id="kb-geoapify">
-      <p>Registro gratuito en <b>geoapify.com</b> — sin tarjeta.</p>
-      <div class="krow"><input type="password" id="key-geoapify" placeholder="API key..."><button class="btn" onclick="testKey('geoapify')">Probar</button></div>
-      <span class="klink" onclick="window.open('https://www.geoapify.com/get-started-with-maps-api','_blank')">Cómo obtener la key →</span>
-      <div class="msg" id="km-geoapify"></div>
-    </div>
-    <div class="kbox" id="kb-google">
-      <p>Google Cloud Console → activa <b>Geocoding API</b> → crea clave. 200€/mes gratis.</p>
-      <div class="krow"><input type="password" id="key-google" placeholder="AIzaSy..."><button class="btn" onclick="testKey('google')">Probar</button></div>
-      <span class="klink" onclick="window.open('https://developers.google.com/maps/documentation/geocoding/get-api-key','_blank')">Cómo obtener la key →</span>
-      <div class="msg" id="km-google"></div>
+    <!-- GEOCODIFICADOR -->
+    <div class="config-row">
+      <div class="slbl" style="margin-bottom:6px">Geocodificador</div>
+      <div class="pgrid">
+        <div class="pcard active" id="pc-photon" onclick="setP('photon')"><div class="pn">Photon <span class="bf">Gratis</span></div><div class="pt">Sin registro</div></div>
+        <div class="pcard" id="pc-geoapify" onclick="setP('geoapify')"><div class="pn">Geoapify <span class="bk">Key</span></div><div class="pt">3.000/día gratis</div></div>
+        <div class="pcard" id="pc-google" onclick="setP('google')"><div class="pn">Google Maps <span class="bk">Key</span></div><div class="pt">Máxima precisión</div></div>
+      </div>
+      <div class="kbox" id="kb-geoapify">
+        <p>Registro gratuito en <b>geoapify.com</b> — sin tarjeta.</p>
+        <div class="krow"><input type="password" id="key-geoapify" placeholder="API key..."><button class="btn" onclick="testKey('geoapify')">Probar</button></div>
+        <span class="klink" onclick="window.open('https://www.geoapify.com/get-started-with-maps-api','_blank')">Cómo obtener la key gratuita →</span>
+        <div class="msg" id="km-geoapify"></div>
+      </div>
+      <div class="kbox" id="kb-google">
+        <p>Google Cloud → activa <b>Geocoding API</b> → crea clave. 200€/mes gratis.</p>
+        <div class="krow"><input type="password" id="key-google" placeholder="AIzaSy..."><button class="btn" onclick="testKey('google')">Probar</button></div>
+        <span class="klink" onclick="window.open('https://developers.google.com/maps/documentation/geocoding/get-api-key','_blank')">Cómo obtener la key →</span>
+        <div class="msg" id="km-google"></div>
+      </div>
     </div>
 
+    <!-- CACHE -->
+    <div class="cache-row">
+      <div class="slbl" style="margin-bottom:6px">Caché de coordenadas</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span id="cacheInfo" style="font-size:12px;color:var(--gray);flex:1">Cargando...</span>
+        <button class="btn" onclick="exportCache()" style="font-size:11px;padding:5px 10px">💾 Guardar</button>
+        <button class="btn" onclick="document.getElementById('cacheFileInput').click()" style="font-size:11px;padding:5px 10px">📂 Cargar</button>
+        <button class="btn" onclick="clearCacheConfirm()" style="font-size:11px;padding:5px 10px;color:var(--orange)">🗑 Borrar</button>
+        <input type="file" id="cacheFileInput" accept=".json" style="display:none" onchange="importCache(this)">
+      </div>
+    </div>
+
+    <!-- CSV -->
     <div class="drop" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       <h3>Arrastra el CSV aquí o haz clic</h3>
@@ -216,13 +238,10 @@ input[type=range]{flex:1;accent-color:var(--blue)}
       <div class="lscroll" id="clientList"></div>
 
       <!-- BOTTOM BAR -->
-      <div style="padding:6px 12px;border-top:1px solid var(--border);background:#faf9f8;display:flex;gap:5px;align-items:center;flex-shrink:0;flex-wrap:wrap">
-        <button class="btn" onclick="clearZone()" id="btnClear" disabled style="font-size:11px;padding:5px 8px">Limpiar</button>
-        <button class="btn" onclick="exportCache()" title="Guardar caché" style="font-size:11px;padding:5px 8px">💾 Caché</button>
-        <button class="btn" onclick="document.getElementById('cacheFileInput').click()" title="Cargar caché" style="font-size:11px;padding:5px 8px">📂 Caché</button>
-        <input type="file" id="cacheFileInput" accept=".json" style="display:none" onchange="importCache(this)">
+      <div style="padding:8px 12px;border-top:1px solid var(--border);background:#faf9f8;display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button class="btn" onclick="clearZone()" id="btnClear" disabled>Limpiar zona</button>
         <div style="flex:1"></div>
-        <button class="btn success" onclick="exportZone()" id="btnExport" disabled style="font-size:12px;padding:6px 14px;font-weight:700">⬇ Exportar zona</button>
+        <button class="btn success" onclick="exportZone()" id="btnExport" disabled style="font-size:13px;padding:7px 16px;font-weight:700">⬇ Exportar zona</button>
       </div>
     </div>
 
@@ -262,9 +281,28 @@ async function testKey(p){
 }
 window.addEventListener('DOMContentLoaded',()=>{
   ['geoapify','google'].forEach(p=>{
-    try{const s=localStorage.getItem('apikey_'+p);if(s){document.getElementById('key-'+p).value=s;showMsg(document.getElementById('km-'+p),'✓ Clave guardada restaurada','ok');}}catch(e){}
+    try{const s=localStorage.getItem('apikey_'+p);if(s){document.getElementById('key-'+p).value=s;showMsg(document.getElementById('km-'+p),'✓ Clave restaurada','ok');}}catch(e){}
   });
+  updateCacheInfo();
 });
+
+function updateCacheInfo(){
+  try{
+    const gc=JSON.parse(localStorage.getItem('geocache')||'{}');
+    const n=Object.keys(gc).length;
+    document.getElementById('cacheInfo').textContent=
+      n>0?`${n} direcciones en caché — la próxima carga será instantánea`:'Sin caché — se geocodificará al cargar el CSV';
+  }catch(e){
+    document.getElementById('cacheInfo').textContent='Sin caché';
+  }
+}
+
+function clearCacheConfirm(){
+  if(confirm('¿Borrar la caché de coordenadas? La próxima carga consultará el geocodificador.')){
+    try{localStorage.removeItem('geocache');}catch(e){}
+    updateCacheInfo();
+  }
+}
 
 // ── CSV ──
 const dz=document.getElementById('dropZone');
@@ -284,7 +322,6 @@ function parseCSV(text){
   document.getElementById('colBlock').style.display='block';
 }
 function fillCols(){
-  // Ordered keyword lists — first match wins, so put most specific first
   const kw={
     cNombre:['nombre del contacto','nombre de la cuenta','nombre','name','cuenta','cliente'],
     cDir:   ['direcci','address','calle','domicilio'],
@@ -297,7 +334,6 @@ function fillCols(){
     const blank=sel.options[0]?.value==='';
     sel.innerHTML=blank?'<option value="">—</option>':'';
     csvHeaders.forEach((h,i)=>sel.add(new Option(h,i)));
-    // Try each keyword in order — first one that matches wins
     let matched=-1;
     for(const k of (kw[id]||[])){
       const idx=csvHeaders.findIndex(h=>new RegExp(k,'i').test(h));
@@ -365,7 +401,7 @@ async function startGeo(){
     document.getElementById('pInfo').textContent=parts.join(' · ');
   }
 
-  try{localStorage.setItem('geocache',JSON.stringify(geoCache));}catch(e){}
+  try{localStorage.setItem('geocache',JSON.stringify(geoCache));updateCacheInfo();}catch(e){}
 
   const n=orders.filter(o=>o.lat).length;
   document.getElementById('hSub').textContent=`${n} clientes geocodificados`;
@@ -618,13 +654,13 @@ function importCache(inp){
   reader.onload=e=>{
     try{
       const imported=JSON.parse(e.target.result);
-      // Merge with existing cache
       let existing={};
       try{existing=JSON.parse(localStorage.getItem('geocache')||'{}');}catch(ex){}
       const merged={...existing,...imported};
       localStorage.setItem('geocache',JSON.stringify(merged));
       const newEntries=Object.keys(imported).length;
       const total=Object.keys(merged).length;
+      updateCacheInfo();
       alert(`✓ Caché importada: ${newEntries} direcciones añadidas (${total} en total).`);
     }catch(ex){
       alert('Error leyendo el archivo. Asegúrate de que es un archivo .json válido.');
