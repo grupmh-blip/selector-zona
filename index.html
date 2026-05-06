@@ -616,22 +616,44 @@ function renderList(){
 function exportZone(){
   if(!zoneOrders.length) return;
 
-  // Original CSV format + 2 new columns: Latitud, Longitud
-  const newCols=['Latitud','Longitud'];
-  const header=[...csvHeaders,...newCols].join(csvSep);
+  // Extract street name and number from address for grouping
+  function parseStreet(dir){
+    // Remove apartment details
+    let a = dir.replace(/\b(Esc\.?|Portal|Piso|Puerta|\bAT\b|\bBJ\b|LOC\w*).*$/i,'')
+               .replace(/,?\s*(NO EXISTE|ESPAÑA|Barcelona\s*\d*|SANTA PERPETUA[^,]*).*/gi,'')
+               .replace(/\b0+(\d+)\b/g,'$1')
+               .replace(/\s+/g,' ').trim().replace(/,+$/,'');
+    // Extract number from end
+    const numMatch = a.match(/(\d+)\s*$/);
+    const num = numMatch ? parseInt(numMatch[1]) : 0;
+    // Street name = everything before the number
+    const street = a.replace(/(\d+)\s*$/,'').trim().toUpperCase();
+    return { street, num };
+  }
 
-  // Only export rows that are in the zone, in distance order
-  const rows=zoneOrders.map(o=>{
-    const r=csvRows[o._rowIdx];
-    const cells=r.map(c=>(c.includes(csvSep)||c.includes('"'))?'"'+c.replace(/"/g,'""')+'"':c);
-    return[...cells, o.lat||'', o.lng||''].join(csvSep);
+  // Sort by street name then by number
+  const sorted = [...zoneOrders].sort((a, b) => {
+    const pa = parseStreet(a.dir);
+    const pb = parseStreet(b.dir);
+    if(pa.street < pb.street) return -1;
+    if(pa.street > pb.street) return 1;
+    return pa.num - pb.num;
   });
 
-  const csv='\uFEFF'+[header,...rows].join('\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`zona_${zoneOrders.length}clientes_${radiusKm}km.csv`;
+  const newCols = ['Latitud','Longitud'];
+  const header = [...csvHeaders, ...newCols].join(csvSep);
+
+  const rows = sorted.map(o => {
+    const r = csvRows[o._rowIdx];
+    const cells = r.map(c => (c.includes(csvSep)||c.includes('"')) ? '"'+c.replace(/"/g,'""')+'"' : c);
+    return [...cells, o.lat||'', o.lng||''].join(csvSep);
+  });
+
+  const csv = '\uFEFF' + [header, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `zona_${sorted.length}clientes_${radiusKm}km.csv`;
   a.click();
 }
 
