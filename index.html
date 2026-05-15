@@ -227,8 +227,8 @@ input[type=range]{flex:1;accent-color:var(--blue)}
         <div class="slbl">Zona para centralita</div>
         <div class="rrow">
           <span>Radio</span>
-          <input type="range" min="0.2" max="10" step="0.1" value="1" id="rSlider" oninput="onRadius()">
-          <span class="rval" id="rVal">1.0 km</span>
+          <input type="range" min="0.2" max="10" step="0.1" value="0.2" id="rSlider" oninput="onRadius()">
+          <span class="rval" id="rVal">0.2 km</span>
         </div>
         <div class="pills">
           <span class="pill blue" id="pTotal">— clientes</span>
@@ -280,7 +280,7 @@ input[type=range]{flex:1;accent-color:var(--blue)}
 // ── State ──
 let orders=[], csvHeaders=[], csvRows=[], csvSep=';';
 let provider='photon', apiKey='';
-let center=null, radiusKm=1, zoneOrders=[];
+let center=null, radiusKm=0.2, zoneOrders=[];
 let map=null, dotsLayer=null, zoneLayer=null, centerMark=null, radiusCircle=null;
 
 // ── Provider ──
