@@ -237,6 +237,13 @@ input[type=range]{flex:1;accent-color:var(--blue)}
         <div style="font-size:11px;color:var(--gray);margin-top:6px" id="zHint">👆 Haz clic en el mapa para centrar la zona</div>
       </div>
 
+      <!-- AUTO ZONE -->
+      <div class="ssec" style="padding:8px 12px;background:#faf9f8">
+        <div class="slbl" style="margin-bottom:6px">Zona automática</div>
+        <button class="btn primary" onclick="autoZone()" id="btnAutoZone" style="width:100%;font-size:12px;padding:7px 0" title="Centra la zona en el punto con mayor densidad de clientes">🎯 Sugerir zona más densa</button>
+        <div id="autoZoneMsg" style="font-size:11px;color:var(--gray);margin-top:5px;min-height:14px"></div>
+      </div>
+
       <!-- SEARCH -->
       <div class="ssec" style="padding:8px 12px">
         <input type="text" id="searchBox" placeholder="Buscar nombre, dirección, OT..." oninput="renderList()" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;font-family:inherit">
@@ -612,48 +619,56 @@ function renderList(){
     </div>`).join('');
 }
 
+// ── Auto Zone: find densest cluster ──
+function autoZone(){
+  const valid = orders.filter(o => o.lat);
+  if(valid.length < 2){
+    document.getElementById('autoZoneMsg').textContent = 'Se necesitan al menos 2 clientes geocodificados.';
+    return;
+  }
+  radiusKm = parseFloat(document.getElementById('rSlider').value);
+
+  // Grid-based density: for each client, count how many others are within radius
+  // This is O(n²) but fine for typical field-service CSVs (< 5000 rows)
+  let bestCount = 0, bestClient = null;
+  for(let i = 0; i < valid.length; i++){
+    let count = 0;
+    for(let j = 0; j < valid.length; j++){
+      if(hav(valid[i], valid[j]) <= radiusKm) count++;
+    }
+    if(count > bestCount){ bestCount = count; bestClient = valid[i]; }
+  }
+
+  if(!bestClient){ document.getElementById('autoZoneMsg').textContent = 'No se pudo calcular la zona.'; return; }
+
+  setCenter(bestClient.lat, bestClient.lng);
+  map.setView([bestClient.lat, bestClient.lng], 14);
+
+  const msg = `✓ Zona más densa: ${bestCount} clientes en ${radiusKm.toFixed(1)} km`;
+  document.getElementById('autoZoneMsg').textContent = msg;
+  document.getElementById('zHint').textContent = `📍 ${bestCount} clientes en zona · Arrastra el punto para mover`;
+}
+
 // ── Export ──
 function exportZone(){
   if(!zoneOrders.length) return;
 
-  // Extract street name and number from address for grouping
-  function parseStreet(dir){
-    // Remove apartment details
-    let a = dir.replace(/\b(Esc\.?|Portal|Piso|Puerta|\bAT\b|\bBJ\b|LOC\w*).*$/i,'')
-               .replace(/,?\s*(NO EXISTE|ESPAÑA|Barcelona\s*\d*|SANTA PERPETUA[^,]*).*/gi,'')
-               .replace(/\b0+(\d+)\b/g,'$1')
-               .replace(/\s+/g,' ').trim().replace(/,+$/,'');
-    // Extract number from end
-    const numMatch = a.match(/(\d+)\s*$/);
-    const num = numMatch ? parseInt(numMatch[1]) : 0;
-    // Street name = everything before the number
-    const street = a.replace(/(\d+)\s*$/,'').trim().toUpperCase();
-    return { street, num };
-  }
+  // Original CSV format + 2 new columns: Latitud, Longitud
+  const newCols=['Latitud','Longitud'];
+  const header=[...csvHeaders,...newCols].join(csvSep);
 
-  // Sort by street name then by number
-  const sorted = [...zoneOrders].sort((a, b) => {
-    const pa = parseStreet(a.dir);
-    const pb = parseStreet(b.dir);
-    if(pa.street < pb.street) return -1;
-    if(pa.street > pb.street) return 1;
-    return pa.num - pb.num;
+  // Only export rows that are in the zone, in distance order
+  const rows=zoneOrders.map(o=>{
+    const r=csvRows[o._rowIdx];
+    const cells=r.map(c=>(c.includes(csvSep)||c.includes('"'))?'"'+c.replace(/"/g,'""')+'"':c);
+    return[...cells, o.lat||'', o.lng||''].join(csvSep);
   });
 
-  const newCols = ['Latitud','Longitud'];
-  const header = [...csvHeaders, ...newCols].join(csvSep);
-
-  const rows = sorted.map(o => {
-    const r = csvRows[o._rowIdx];
-    const cells = r.map(c => (c.includes(csvSep)||c.includes('"')) ? '"'+c.replace(/"/g,'""')+'"' : c);
-    return [...cells, o.lat||'', o.lng||''].join(csvSep);
-  });
-
-  const csv = '\uFEFF' + [header, ...rows].join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `zona_${sorted.length}clientes_${radiusKm}km.csv`;
+  const csv='\uFEFF'+[header,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`zona_${zoneOrders.length}clientes_${radiusKm}km.csv`;
   a.click();
 }
 
